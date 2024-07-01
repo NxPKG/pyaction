@@ -4,7 +4,7 @@ on:
     branches:
       - master
     tags:
-      - "v*.*.*"
+      - 'v*.*.*'
   pull_request:
     types:
       - labeled
@@ -14,7 +14,7 @@ jobs:
     if: github.event.action != 'labeled'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v2
 
       # Bump version on merging Pull Requests with specific labels.
       # (bump:major,bump:minor,bump:patch)
@@ -37,20 +37,22 @@ jobs:
           if_true: ${{ github.ref }}
           if_false: ${{ steps.bumpr.outputs.next_version }}
 
-      # Create release
-      - if: "steps.tag.outputs.value != ''"
-        env:
-          TAG_NAME: ${{ steps.tag.outputs.value }}
-          BODY: ${{ steps.bumpr.outputs.message }}
+      # Create release.
+      - uses: shogo82148/actions-create-release@v1
+        if: "steps.tag.outputs.value != ''"
+        with:
           # This token is provided by Actions, you do not need to create your own token
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh release create "${TAG_NAME}" -t "Release ${TAG_NAME/refs\/tags\//}" --notes "${BODY}"
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          tag_name: ${{ steps.tag.outputs.value }}
+          release_name: Release ${{ steps.tag.outputs.value }}
+          body: ${{ steps.bumpr.outputs.message }}
+          draft: false
+          prerelease: false
 
   release-check:
     if: github.event.action == 'labeled'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v2
       - name: Post bumpr status comment
         uses: haya14busa/action-bumpr@v1
